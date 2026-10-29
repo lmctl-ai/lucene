@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+base=$(cd "$(dirname "$0")" && pwd)
+if [[ ! -f "$base/build/lmlucene.jar" ]]; then
+  echo 'Build first: ./lmcode/build.sh' >&2
+  exit 1
+fi
+exec java --enable-native-access=ALL-UNNAMED -cp "$base/build/lmlucene.jar:$base/build/lib/*" io.lmctl.lucene.Main "$@"

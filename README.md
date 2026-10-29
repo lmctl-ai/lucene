@@ -17,6 +17,11 @@
 
 # Apache Lucene
 
+This fork adds [LMScript/lmcode bindings](lmcode/README.md): build Lucene from
+source, index and query through typed Java objects, and customize token analysis
+and scoring with SAM rule callbacks. Start with `./lmcode/test.sh` or
+[the durable-memory index](durable-memory/index.md).
+
 ![Lucene Logo](https://lucene.apache.org/theme/images/lucene/lucene_logo_green_300.png?v=0e493d7a)
 
 Apache Lucene is a high-performance, full-featured text search engine library

@@ -1,0 +1,34 @@
+# Run from the repository root: lmscript lmcode/examples/basic.lms
+program = _lmcode_ schema="../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let config = writer_config(analyzer).open_mode(OpenMode.CREATE);
+let writer = index_writer(directory, config);
+writer.add(document().keyword("id", "1", true).text("title", "Lucene introduction", true).text("body", "Lucene indexes documents and answers queries", true).number("year", 2026, true));
+writer.add(document().keyword("id", "2", true).text("title", "Java guide", true).text("body", "Java hosts the Lucene search engine", true).number("year", 2025, true));
+writer.add(document().keyword("id", "3", true).text("title", "Gardening", true).text("body", "Growing tomatoes in summer", true).number("year", 2024, true));
+writer.commit();
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+let hits = searcher.search(parse_query("body", "lucene", analyzer), 10);
+assert_true(hits.total() == 2, "two Lucene documents");
+hits.emit("text search");
+for (hit in hits) {
+  print(hit.document().get("title") + " score=" + str(hit.score()));
+}
+let filtered = boolean_query().add(term_query("body", "lucene"), Occur.MUST).add(long_range("year", 2026, 2026), Occur.FILTER).build();
+let recent = searcher.search(filtered, 10);
+assert_true(recent.total() == 1, "numeric range filter");
+recent.emit("Lucene in 2026");
+reader.close();
+writer.close();
+analyzer.close();
+directory.close();
+end _lmcode_
+savedsl(program, "lmcode/build/basic.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/basic.dslb;
+if (r.code != 0) {
+  print(r.stderr);
+}
+assert(r.code == 0);
+print(r.stdout);

@@ -1,0 +1,47 @@
+# Both functions become separate DSLB v6 entries invoked from Lucene Java overrides.
+program = _lmcode_ schema="../lucene.dsl.json";
+@analysis
+fn normalize(token: string) -> string implements TokenTransform {
+  let normalized = token;
+  if (token == "automobile") { normalized = "car"; }
+  return normalized;
+}
+@similarity
+fn title_weight(stats: CollectionStats) -> float implements FieldWeight {
+  let weight = 1.0;
+  if (stats.field() == "title") { weight = 10.0; }
+  return weight;
+}
+let directory = memory_directory();
+let analyzer = rule_analyzer("normalize");
+let writer = index_writer(directory, writer_config(analyzer));
+writer.add(document().keyword("id", "title-hit", true).text("title", "car", true).text("body", "transport", true));
+writer.add(document().keyword("id", "body-hit", true).text("title", "transport", true).text("body", "car", true));
+writer.add(document().keyword("id", "normalized", true).text("title", "catalog", true).text("body", "automobile catalog", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+let query = parse_query("body", "title:car OR body:car^3", analyzer);
+let baseline = searcher.search(query, 10);
+assert_true(baseline.at(0).document().get("id") == "body-hit", "baseline favors body boost");
+baseline.emit("BM25 baseline");
+searcher.bm25(1.2, 0.75).similarity_rule("title_weight");
+let custom = searcher.search(query, 10);
+custom.emit("scripted title weight");
+assert_true(custom.total() == 3, "token override maps automobile to car");
+assert_true(custom.at(0).document().get("id") == "title-hit", "scripted similarity ranks title first");
+let only_title = term_query("title", "car");
+let weighted_hits = searcher.search(only_title, 1);
+let weighted_score = weighted_hits.at(0).score();
+assert_true(str_find(searcher.explain(only_title, weighted_hits.at(0).doc_id()), "title_weight") >= 0, "explanation identifies SAM rule");
+searcher.bm25(1.2, 0.75);
+let original_score = searcher.search(only_title, 1).at(0).score();
+assert_true(abs(weighted_score - original_score * 10.0) < 0.00001, "SAM callback changes actual Lucene score by 10x");
+assert_true(searcher.count(parse_query("body", "automobile", analyzer)) == 2, "query analyzer uses same token rule");
+end _lmcode_
+savedsl(program, "lmcode/build/rules.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/rules.dslb;
+if (r.code != 0) {
+  print(r.stderr);
+}
+assert(r.code == 0);
+print(r.stdout);

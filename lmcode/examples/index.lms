@@ -1,0 +1,19 @@
+# lmscript lmcode/examples/index.lms /tmp/my-lucene-index
+# CREATE_OR_APPEND and update by exact id make reruns idempotent.
+program = _lmcode_ schema="../lucene.dsl.json";
+let directory = fs_directory(${ARGV[0]});
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer).open_mode(OpenMode.CREATE_OR_APPEND));
+writer.update("id", "1", document().keyword("id", "1", true).text("title", "Lucene with lmcode", true).text("body", "Index and query documents with Java and Lucene", true));
+writer.update("id", "2", document().keyword("id", "2", true).text("title", "Embedded rules", true).text("body", "Customize the Lucene engine with typed lmcode rules", true));
+writer.commit();
+writer.close();
+print("Index committed");
+end _lmcode_
+savedsl(program, "lmcode/build/index.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/index.dslb;
+if (r.code != 0) {
+  print(r.stderr);
+}
+assert(r.code == 0);
+print(r.stdout);

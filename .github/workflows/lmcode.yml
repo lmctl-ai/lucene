@@ -1,0 +1,25 @@
+name: lmcode host
+on:
+  push:
+    paths: ['lmcode/**', 'durable-memory/**', '.github/workflows/lmcode.yml']
+  pull_request:
+    paths: ['lmcode/**', 'durable-memory/**', '.github/workflows/lmcode.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+      - run: npm install -g @lmctl-ai/lmctl@0.2.444
+      - run: ./lmcode/test.sh
+      - run: ./gradlew :lucene:core:test --tests org.apache.lucene.index.TestIndexWriter --tests org.apache.lucene.search.TestIndexSearcher -Pgradle.ge=false --console=plain

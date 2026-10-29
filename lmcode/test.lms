@@ -1,0 +1,5 @@
+# Run from repository root: lmscript lmcode/test.lms
+r = system(["bash", "lmcode/test.sh"], 0);
+print(r.stdout);
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);

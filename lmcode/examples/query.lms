@@ -1,0 +1,20 @@
+# lmscript lmcode/examples/query.lms /tmp/my-lucene-index 'lucene AND rules'
+program = _lmcode_ schema="../lucene.dsl.json";
+let directory = fs_directory(${ARGV[0]});
+let analyzer = standard_analyzer();
+let reader = directory_reader(directory);
+let searcher = index_searcher(reader);
+let query = parse_query("body", ${ARGV[1]}, analyzer);
+let hits = searcher.search(query, 10);
+hits.emit("query results");
+for (hit in hits) {
+  print(hit.document().get("title") + " score=" + str(hit.score()));
+}
+end _lmcode_
+savedsl(program, "lmcode/build/query.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/query.dslb;
+if (r.code != 0) {
+  print(r.stderr);
+}
+assert(r.code == 0);
+print(r.stdout);

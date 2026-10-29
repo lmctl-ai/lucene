@@ -1,0 +1,20 @@
+# Add $PWD/lmcode to PATH, then run from the repository root.
+# Like lmaws: import the published CLI schema and call a typed operation.
+import "../cli.schema.dev.json" as lucene;
+program = _lmcode_ schema="../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+writer.add(document().text("body", "Lucene through a schema CLI", true));
+let reader = writer.reader();
+index_searcher(reader).search(term_query("body", "lucene"), 10).emit("schema CLI");
+end _lmcode_
+savedsl(program, "lmcode/build/schema-cli.dslb");
+result = lucene.run({program: "lmcode/build/schema-cli.dslb"});
+if (result.status == "simulated") {
+  print("Would execute the Lucene program");
+} else {
+  assert(result.status == "ok");
+  assert(result.result.ok);
+  print(result.result);
+}
