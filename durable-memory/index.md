@@ -14,6 +14,8 @@ Start with [the host guide](../lmcode/README.md), then:
 - [Integration tests](../lmcode/tests/integration.py): real compiler and engine,
   callback isolation, schema parity, persistence and failure controls.
 - [References and decisions](references.md): PyLucene API mapping and SDK constraints.
+- [Example gallery](gallery.md): 32 online-source-inspired `.lms` examples and
+  the analysis, term-vector, sorting, pagination, facet and KNN bindings they use.
 
 ## Important invariants
 
@@ -59,6 +61,7 @@ hash in `lmcode/sdk.lock`; no Maven artifact substitutes for the fork.
 Build outputs remain ignored. No binary release is implied by a source push.
 
 Verified locally on 2026-10-29, Linux arm64, OpenJDK 21.0.12.1 and LMScript
-0.2.444: the source build and all 13 integration groups passed. The focused
+0.2.444: the source build, all 14 integration groups, all 32 gallery examples
+through normal preflight, and the single LMScript gallery runner passed. The focused
 upstream suites reported 129 passing tests and one skipped test, zero failures.
 CI adds an Ubuntu x64 check; local results do not imply a completed CI run.

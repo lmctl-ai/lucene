@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Boolean MUST, FILTER and MUST_NOT clauses
+# Inspired by: https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html
+# Expected: only id 1
+# Run from repository root: lmscript lmcode/examples/gallery/06_boolean_filters.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "1", true).keyword("category", "guide", true).text("body", "lucene java", true));
+writer.add(document().keyword("id", "2", true).keyword("category", "guide", true).text("body", "lucene obsolete", true));
+writer.add(document().keyword("id", "3", true).keyword("category", "news", true).text("body", "lucene java", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = boolean_query().add(term_query("body", "lucene"), Occur.MUST).add(term_query("category", "guide"), Occur.FILTER).add(term_query("body", "obsolete"), Occur.MUST_NOT).build();
+let hits = searcher.search(query, 10);
+assert_true(hits.total() == 1, "one non-obsolete guide");
+assert_true(hits.at(0).document().get("id") == "1", "correct filtered document");
+hits.emit("filtered guides");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/06_boolean_filters.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/06_boolean_filters.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

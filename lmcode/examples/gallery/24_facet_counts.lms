@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# Count author facets across all or matching documents
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java
+# Expected: global Ada=2, Ben=1; query-relative Ada=1, Ben=1
+# Run from repository root: lmscript lmcode/examples/gallery/24_facet_counts.lms
+# Adaptation: Uses Lucene’s sorted-set doc-values facets, avoiding a separate taxonomy index.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+let facets = facet_config();
+writer.add(facets.build(document().keyword("id", "1", true).text("body", "lucene", true).facet("Author", "Ada").facet("Year", "2025")));
+writer.add(facets.build(document().keyword("id", "2", true).text("body", "lucene", true).facet("Author", "Ben").facet("Year", "2026")));
+writer.add(facets.build(document().keyword("id", "3", true).text("body", "python", true).facet("Author", "Ada").facet("Year", "2026")));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let all_authors = searcher.facets(all_query(), facets, "Author", 10);
+let matched_authors = searcher.facets(term_query("body", "lucene"), facets, "Author", 10);
+assert_true(all_authors.count("Ada") == 2 && all_authors.count("Ben") == 1, "global counts");
+assert_true(matched_authors.count("Ada") == 1 && matched_authors.count("Ben") == 1, "query-relative counts");
+all_authors.emit("all authors");matched_authors.emit("authors matching lucene");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/24_facet_counts.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/24_facet_counts.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

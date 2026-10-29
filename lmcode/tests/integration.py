@@ -127,6 +127,23 @@ with tempfile.TemporaryDirectory(prefix='lmlucene-test-') as tmp:
         assert payload['line'] >= 2, payload
     passed('located failures: closed handles, missing/wrong rules, callback errors and reentry, scores, limits, bounds, query syntax')
 
+    setup = 'let d=memory_directory();let a=standard_analyzer();let w=index_writer(d,writer_config(a));'
+    for body, message in [
+        ('standard_analyzer().tokens("body","hello").at(1);', 'index out of range'),
+        ('document().vector("v",float_list());', 'must not be empty'),
+        ('document().vector("v",float_list().add(0.0 / 0.0));', 'finite float32'),
+        (setup+'w.add(document().vector("v",float_list().add(1.0).add(0.0)));let r=w.reader();index_searcher(r).search(knn_query("v",float_list().add(1.0),1),1);', 'dimension'),
+        (setup+'w.add(document().text("body","x",true));let r=w.reader();let s=index_searcher(r);let hit=s.search(all_query(),1).at(0);index_searcher(r).search_after(all_query(),hit,1);', 'another searcher'),
+        (setup+'w.add(document().sort_number("n",1));let r=w.reader();let s=index_searcher(r);let hit=s.sorted_search(all_query(),"n",SortType.LONG,false,1).at(0);s.search_after(all_query(),hit,1);', 'score-ordered cursor'),
+        (setup+'let f=facet_config();w.add(f.build(document().facet("Tag","x")));let r=w.reader();index_searcher(r).facets(all_query(),f,"Tag",0);', 'facet limit'),
+    ]:
+        payload=execute(body,3)
+        assert message.lower() in payload['message'].lower(), payload
+        assert payload['line'] >= 2, payload
+    empty_facets = execute(setup+'let f=facet_config();w.add(f.build(document().facet("Tag","x")));let r=w.reader();let counts=index_searcher(r).facets(term_query("missing","none"),f,"Tag",10);assert_true(counts.total()==0 && counts.len()==0,"empty facet matches");')
+    assert empty_facets['ok']
+    passed('gallery API failure controls: token bounds, invalid vectors, cursor ownership/order, facet limit and empty matches')
+
     _, result = compile_body('index_writer("wrong", "types");', 2)
     assert '_lmcode_' in result.stderr
     _, result = compile_body('@x\nfn wrong(t:string)->int implements TokenTransform{return 1;}', 2)

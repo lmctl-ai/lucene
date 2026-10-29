@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Count multiple tags without double-counting documents
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java
+# Expected: java=1, search=2; two documents in the dimension
+# Run from repository root: lmscript lmcode/examples/gallery/26_multivalued_facets.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+let facets = facet_config().multi_valued("Tag");
+writer.add(facets.build(document().keyword("id", "1", true).facet("Tag", "java").facet("Tag", "search")));
+writer.add(facets.build(document().keyword("id", "2", true).facet("Tag", "search")));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let tags = searcher.facets(all_query(), facets, "Tag", 10);
+assert_true(tags.count("java") == 1 && tags.count("search") == 2, "tag counts");
+assert_true(tags.total() == 2, "dimension total counts documents, not labels");
+assert_true(tags.len() == 2 && tags.label(0) == "search" && tags.value(0) == 2, "top label");
+tags.emit("multi-valued tags");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/26_multivalued_facets.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/26_multivalued_facets.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

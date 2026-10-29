@@ -23,6 +23,15 @@ The first example indexes three documents, runs a text query, and filters by
 numeric year. The second shows custom analysis and a rule that changes ranking.
 Each example prints a JSON result with stored fields, document IDs and scores.
 
+The [32-example gallery](examples/gallery/README.md) expands the official Lucene
+and PyLucene examples into runnable `.lms` files: phrase/fuzzy/wildcard queries,
+stemming, token positions, term vectors, lifecycle, sorting, pagination, facets,
+vector KNN, and SAM customization. Every example has assertions and source links.
+
+```sh
+lmscript --no-preflight lmcode/examples/run-gallery.lms
+```
+
 Persistent indexing and querying in separate processes:
 
 ```sh
@@ -131,6 +140,7 @@ Stdout contains exactly one `{ok,result}` or `{ok:false,phase,code,message,...}`
 JSON envelope. `TopDocs.emit(label)` adds results to `result.searches`, retaining
 repeated stored fields as arrays. Script `print` writes to stderr. Exit codes:
 0 success, 2 CLI usage (or LMScript compile failure), 3 load/runtime/policy failure.
+Token streams, facets, and reported explanations appear in `result.details`.
 
 ## API and lifecycle
 
@@ -146,11 +156,14 @@ in reverse acquisition order. Explicitly committed data remains committed even
 if a later operation fails. Readers are immutable snapshots; create a new reader
 to see subsequent updates. Stored strings must be valid UTF-8 at the Java boundary.
 
-This first API includes analyzed/keyword/stored/numeric fields, in-memory and
+The API includes analyzed/keyword/stored/numeric/vector fields, in-memory and
 filesystem directories, updates/deletes, near-real-time readers, parsed/term/
 prefix/Boolean/range queries, exact hit counts, stored documents, scores, and
-explanations. It does not yet bind all of PyLucene: vector KNN, facets,
-highlighting and arbitrary subclass overrides are outside this initial surface.
+explanations. The gallery adds English/whitespace analyzers, token inspection,
+stored term vectors, doc-value sorting, score pagination, flat sorted-set facets,
+drilldown and filtered Euclidean KNN. It does not bind all of PyLucene:
+highlighting, taxonomy hierarchies and arbitrary subclass overrides remain outside
+the current surface. See [binding details](../durable-memory/gallery.md).
 
 ## Tests
 
@@ -163,7 +176,8 @@ lmscript --no-preflight lmcode/test.lms
 Integration tests use real Lucene and LMScript, temporary indexes, both SAM
 hooks, ranking/score assertions, callback arena isolation, persistence, snapshots,
 rollback/lock cleanup, schema/registry parity, malformed bytecode, type errors,
-located runtime failures, CLI JSON inputs and policy controls. Set `LMSCRIPT_BIN`
+located runtime failures, CLI JSON inputs and policy controls, then execute all
+32 gallery examples. Set `LMSCRIPT_BIN`
 to test against a specific compiler executable.
 
 Lucene source retains its Apache-2.0 license. The pinned SDK is MIT licensed;

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Explicit commit survives later rollback
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+# Expected: only committed document remains
+# Run from repository root: lmscript lmcode/examples/gallery/20_commit_rollback.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "committed", true));
+writer.commit();
+writer.add(document().keyword("id", "rolled-back", true));
+writer.rollback();
+let reader = directory_reader(directory);
+let hits = index_searcher(reader).search(all_query(), 10);
+assert_true(hits.total() == 1 && hits.at(0).document().get("id") == "committed", "only committed document remains");
+hits.emit("after rollback");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/20_commit_rollback.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/20_commit_rollback.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

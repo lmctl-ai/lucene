@@ -10,14 +10,21 @@ import java.nio.file.Path;
 import java.util.*;
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.document.*;
+import org.apache.lucene.facet.*;
+import org.apache.lucene.facet.sortedset.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.*;
+import org.apache.lucene.util.BytesRef;
 
 /** Typed handles to Lucene itself. The schema is generated from these same registrations. */
 public final class Host implements AutoCloseable {
@@ -30,6 +37,7 @@ public final class Host implements AutoCloseable {
   private Program rules;
   public long callbackCalls;
   private final List<Object> results = new ArrayList<>();
+  private final List<Object> details = new ArrayList<>();
 
   @FunctionalInterface
   interface Body {
@@ -78,6 +86,16 @@ public final class Host implements AutoCloseable {
   record Hit(ScoreDoc value, Search search) {}
 
   record Stats(String field, long docCount, long totalTerms, long docFreq, double boost) {}
+
+  record Token(String term, int position, int start, int end) {}
+
+  record Tokens(List<Token> items) {}
+
+  record VectorTerm(String term, List<Token> positions) {}
+
+  record VectorTerms(List<VectorTerm> items) {}
+
+  record Counts(String dimension, long total, List<LabelAndValue> labels) {}
 
   public Host() {
     this(false);
@@ -559,6 +577,7 @@ public final class Host implements AutoCloseable {
               Map.of("label", text(a[0]), "total", hits.value().totalHits.value(), "hits", rows));
           return Value.none();
         });
+    registerGalleryBindings();
     for (String type : List.of("Directory", "Analyzer", "IndexWriter", "DirectoryReader"))
       method(
           type,
@@ -569,6 +588,406 @@ public final class Host implements AutoCloseable {
             ((Resource<?>) s.asObject()).close();
             return Value.none();
           });
+  }
+
+  /** Additional Lucene APIs used by the runnable upstream-inspired gallery. */
+  private void registerGalleryBindings() {
+    fn("english_analyzer", "Analyzer", List.of(), (s, a) -> own("Analyzer", new EnglishAnalyzer()));
+    fn(
+        "whitespace_analyzer",
+        "Analyzer",
+        List.of(),
+        (s, a) -> own("Analyzer", new WhitespaceAnalyzer()));
+    fn(
+        "report",
+        "void",
+        List.of("string", "string"),
+        (s, a) -> {
+          details.add(Map.of("label", text(a[0]), "value", text(a[1])));
+          return Value.none();
+        });
+    method(
+        "Analyzer",
+        "tokens",
+        "Tokens",
+        List.of("string", "string"),
+        (s, a) -> {
+          List<Token> tokens = new ArrayList<>();
+          try (TokenStream stream =
+              resource(s, Analyzer.class).get().tokenStream(text(a[0]), text(a[1]))) {
+            CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
+            OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);
+            PositionIncrementAttribute increment =
+                stream.addAttribute(PositionIncrementAttribute.class);
+            stream.reset();
+            int position = -1;
+            while (stream.incrementToken()) {
+              position += increment.getPositionIncrement();
+              tokens.add(
+                  new Token(term.toString(), position, offset.startOffset(), offset.endOffset()));
+            }
+            stream.end();
+          }
+          return obj("Tokens", new Tokens(List.copyOf(tokens)));
+        });
+    method(
+        "Tokens",
+        "len",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((Tokens) s.asObject()).items().size()));
+    method(
+        "Tokens",
+        "at",
+        "Token",
+        List.of("int"),
+        (s, a) -> obj("Token", item(((Tokens) s.asObject()).items(), a[0])));
+    method(
+        "Token",
+        "term",
+        "string",
+        List.of(),
+        (s, a) -> Value.ofString(((Token) s.asObject()).term()));
+    method(
+        "Token",
+        "position",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((Token) s.asObject()).position()));
+    method(
+        "Token", "start", "int", List.of(), (s, a) -> Value.ofInt(((Token) s.asObject()).start()));
+    method("Token", "end", "int", List.of(), (s, a) -> Value.ofInt(((Token) s.asObject()).end()));
+    method(
+        "Tokens",
+        "emit",
+        "void",
+        List.of("string"),
+        (s, a) -> {
+          List<Object> rows = new ArrayList<>();
+          for (Token t : ((Tokens) s.asObject()).items())
+            rows.add(
+                Map.of(
+                    "term",
+                    t.term(),
+                    "position",
+                    t.position(),
+                    "start",
+                    t.start(),
+                    "end",
+                    t.end()));
+          details.add(Map.of("label", text(a[0]), "tokens", rows));
+          return Value.none();
+        });
+    method(
+        "Document",
+        "vector_text",
+        "Document",
+        List.of("string", "string", "bool"),
+        (s, a) -> {
+          FieldType type = new FieldType(TextField.TYPE_NOT_STORED);
+          type.setStored(a[2].asBool());
+          type.setStoreTermVectors(true);
+          type.setStoreTermVectorPositions(true);
+          type.setStoreTermVectorOffsets(true);
+          type.freeze();
+          doc(s).add(new Field(text(a[0]), text(a[1]), type));
+          return s;
+        });
+    method(
+        "DirectoryReader",
+        "term_vectors",
+        "TermVectors",
+        List.of("int", "string"),
+        (s, a) -> {
+          Terms terms =
+              resource(s, DirectoryReader.class)
+                  .get()
+                  .termVectors()
+                  .get(Math.toIntExact(a[0].asInt()), text(a[1]));
+          List<VectorTerm> result = new ArrayList<>();
+          if (terms != null) {
+            TermsEnum iterator = terms.iterator();
+            BytesRef bytes;
+            while ((bytes = iterator.next()) != null) {
+              String term = bytes.utf8ToString();
+              PostingsEnum postings = iterator.postings(null, PostingsEnum.ALL);
+              postings.nextDoc();
+              List<Token> positions = new ArrayList<>();
+              for (int i = 0; i < postings.freq(); i++)
+                positions.add(
+                    new Token(
+                        term,
+                        postings.nextPosition(),
+                        postings.startOffset(),
+                        postings.endOffset()));
+              result.add(new VectorTerm(term, List.copyOf(positions)));
+            }
+          }
+          return obj("TermVectors", new VectorTerms(List.copyOf(result)));
+        });
+    method(
+        "TermVectors",
+        "len",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((VectorTerms) s.asObject()).items().size()));
+    method(
+        "TermVectors",
+        "at",
+        "VectorTerm",
+        List.of("int"),
+        (s, a) -> obj("VectorTerm", item(((VectorTerms) s.asObject()).items(), a[0])));
+    method(
+        "VectorTerm",
+        "term",
+        "string",
+        List.of(),
+        (s, a) -> Value.ofString(((VectorTerm) s.asObject()).term()));
+    method(
+        "VectorTerm",
+        "len",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((VectorTerm) s.asObject()).positions().size()));
+    method(
+        "VectorTerm",
+        "at",
+        "Token",
+        List.of("int"),
+        (s, a) -> obj("Token", item(((VectorTerm) s.asObject()).positions(), a[0])));
+    method(
+        "VectorTerm",
+        "tokens",
+        "Tokens",
+        List.of(),
+        (s, a) -> obj("Tokens", new Tokens(((VectorTerm) s.asObject()).positions())));
+    method(
+        "Document",
+        "sort_number",
+        "Document",
+        List.of("string", "int"),
+        (s, a) -> {
+          doc(s).add(new NumericDocValuesField(text(a[0]), a[1].asInt()));
+          return s;
+        });
+    method(
+        "Document",
+        "sort_keyword",
+        "Document",
+        List.of("string", "string"),
+        (s, a) -> {
+          doc(s).add(new SortedDocValuesField(text(a[0]), new BytesRef(text(a[1]))));
+          return s;
+        });
+    method(
+        "IndexSearcher",
+        "sorted_search",
+        "TopDocs",
+        List.of("Query", "string", "SortType", "bool", "int"),
+        (s, a) -> {
+          Search search = search(s);
+          Query q = query(a[0]);
+          Sort sort =
+              new Sort(
+                  new SortField(text(a[1]), SortField.Type.valueOf(text(a[2])), a[3].asBool()));
+          TopDocs hits =
+              search
+                  .get()
+                  .search(
+                      q,
+                      new TopFieldCollectorManager(
+                          sort, positive(a[4], "hit limit"), Integer.MAX_VALUE));
+          TopFieldCollector.populateScores(hits.scoreDocs, search.get(), q);
+          return checkedHits(hits, search);
+        });
+    method(
+        "IndexSearcher",
+        "search_after",
+        "TopDocs",
+        List.of("Query", "Hit", "int"),
+        (s, a) -> {
+          Search search = search(s);
+          Hit after = (Hit) a[1].asObject();
+          if (after.search() != search)
+            throw VmException.host("search_after cursor belongs to another searcher");
+          if (after.value() instanceof FieldDoc)
+            throw VmException.host("search_after requires a score-ordered cursor");
+          return checkedHits(
+              search
+                  .get()
+                  .search(
+                      query(a[0]),
+                      new TopScoreDocCollectorManager(
+                          positive(a[2], "hit limit"), after.value(), Integer.MAX_VALUE)),
+              search);
+        });
+    fn("facet_config", "FacetConfig", List.of(), (s, a) -> obj("FacetConfig", new FacetsConfig()));
+    method(
+        "FacetConfig",
+        "multi_valued",
+        "FacetConfig",
+        List.of("string"),
+        (s, a) -> {
+          FacetsConfig config = (FacetsConfig) s.asObject();
+          config.setMultiValued(text(a[0]), true);
+          config.setRequireDimCount(text(a[0]), true);
+          return s;
+        });
+    method(
+        "Document",
+        "facet",
+        "Document",
+        List.of("string", "string"),
+        (s, a) -> {
+          doc(s).add(new SortedSetDocValuesFacetField(text(a[0]), text(a[1])));
+          return s;
+        });
+    method(
+        "FacetConfig",
+        "build",
+        "Document",
+        List.of("Document"),
+        (s, a) -> obj("Document", ((FacetsConfig) s.asObject()).build(doc(a[0]))));
+    fn(
+        "drill_down",
+        "Query",
+        List.of("FacetConfig", "Query", "string", "string"),
+        (s, a) -> {
+          DrillDownQuery q = new DrillDownQuery((FacetsConfig) a[0].asObject(), query(a[1]));
+          q.add(text(a[2]), text(a[3]));
+          return obj("Query", q);
+        });
+    method(
+        "IndexSearcher",
+        "facets",
+        "FacetCounts",
+        List.of("Query", "FacetConfig", "string", "int"),
+        (s, a) -> {
+          Search search = search(s);
+          search.get();
+          SortedSetDocValuesReaderState state =
+              new DefaultSortedSetDocValuesReaderState(
+                  search.reader().get(), (FacetsConfig) a[1].asObject());
+          FacetsCollector collected =
+              search.get().search(query(a[0]), new FacetsCollectorManager());
+          FacetResult counts =
+              new SortedSetDocValuesFacetCounts(state, collected)
+                  .getTopChildren(positive(a[3], "facet limit"), text(a[2]));
+          return obj(
+              "FacetCounts",
+              new Counts(
+                  text(a[2]),
+                  counts == null ? 0 : counts.value.longValue(),
+                  counts == null ? List.of() : List.of(counts.labelValues)));
+        });
+    method(
+        "FacetCounts",
+        "total",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((Counts) s.asObject()).total()));
+    method(
+        "FacetCounts",
+        "len",
+        "int",
+        List.of(),
+        (s, a) -> Value.ofInt(((Counts) s.asObject()).labels().size()));
+    method(
+        "FacetCounts",
+        "label",
+        "string",
+        List.of("int"),
+        (s, a) -> Value.ofString(item(((Counts) s.asObject()).labels(), a[0]).label));
+    method(
+        "FacetCounts",
+        "value",
+        "int",
+        List.of("int"),
+        (s, a) -> Value.ofInt(item(((Counts) s.asObject()).labels(), a[0]).value.longValue()));
+    method(
+        "FacetCounts",
+        "count",
+        "int",
+        List.of("string"),
+        (s, a) -> {
+          for (LabelAndValue label : ((Counts) s.asObject()).labels())
+            if (label.label.equals(text(a[0]))) return Value.ofInt(label.value.longValue());
+          return Value.ofInt(0);
+        });
+    method(
+        "FacetCounts",
+        "emit",
+        "void",
+        List.of("string"),
+        (s, a) -> {
+          Counts counts = (Counts) s.asObject();
+          List<Object> rows = new ArrayList<>();
+          for (LabelAndValue label : counts.labels())
+            rows.add(Map.of("label", label.label, "count", label.value));
+          details.add(
+              Map.of(
+                  "label",
+                  text(a[0]),
+                  "dimension",
+                  counts.dimension(),
+                  "total",
+                  counts.total(),
+                  "counts",
+                  rows));
+          return Value.none();
+        });
+    method(
+        "Document",
+        "vector",
+        "Document",
+        List.of("string", "FloatList"),
+        (s, a) -> {
+          doc(s)
+              .add(
+                  new KnnFloatVectorField(
+                      text(a[0]), vector(a[1]), VectorSimilarityFunction.EUCLIDEAN));
+          return s;
+        });
+    fn(
+        "knn_query",
+        "Query",
+        List.of("string", "FloatList", "int"),
+        (s, a) ->
+            obj("Query", new KnnFloatVectorQuery(text(a[0]), vector(a[1]), positive(a[2], "k"))));
+    fn(
+        "knn_query",
+        "Query",
+        List.of("string", "FloatList", "int", "Query"),
+        (s, a) ->
+            obj(
+                "Query",
+                new KnnFloatVectorQuery(
+                    text(a[0]), vector(a[1]), positive(a[2], "k"), query(a[3]))));
+  }
+
+  private static <T> T item(List<T> list, Value index) {
+    long i = index.asInt();
+    if (i < 0 || i >= list.size()) throw VmException.host("index out of range");
+    return list.get((int) i);
+  }
+
+  private static float[] vector(Value value) {
+    List<Value> list = Stdlib.collectionValues(value);
+    if (list.isEmpty()) throw VmException.host("vector must not be empty");
+    float[] result = new float[list.size()];
+    for (int i = 0; i < result.length; i++) {
+      result[i] = (float) list.get(i).asFloat();
+      if (!Float.isFinite(result[i]))
+        throw VmException.host("vector components must be finite float32 values");
+    }
+    return result;
+  }
+
+  private static Value checkedHits(TopDocs hits, Search search) {
+    for (ScoreDoc hit : hits.scoreDocs)
+      if (!Float.isFinite(hit.score) || hit.score < 0)
+        throw VmException.host("query produced an invalid score");
+    return obj("TopDocs", new Hits(hits, search));
   }
 
   private void fn(String name, String returns, List<String> params, Body body) {
@@ -611,8 +1030,9 @@ public final class Host implements AutoCloseable {
   }
 
   private void declareType(String t) {
-    if (!Set.of("void", "int", "float", "bool", "string", "OpenMode", "Occur").contains(t))
-      types.computeIfAbsent(t, k -> new TreeMap<String, Object>());
+    if (!Set.of(
+            "void", "int", "float", "bool", "string", "OpenMode", "Occur", "SortType", "FloatList")
+        .contains(t)) types.computeIfAbsent(t, k -> new TreeMap<String, Object>());
   }
 
   public byte[] schema() {
@@ -649,7 +1069,9 @@ public final class Host implements AutoCloseable {
                         "OpenMode",
                         List.of("CREATE", "APPEND", "CREATE_OR_APPEND"),
                         "Occur",
-                        List.of("MUST", "SHOULD", "MUST_NOT", "FILTER")),
+                        List.of("MUST", "SHOULD", "MUST_NOT", "FILTER"),
+                        "SortType",
+                        List.of("LONG", "STRING")),
                     "interfaces",
                     interfaces))
             + "\n")
@@ -681,7 +1103,7 @@ public final class Host implements AutoCloseable {
   }
 
   public String result() {
-    return json(Map.of("searches", results, "rule_calls", callbackCalls));
+    return json(Map.of("searches", results, "details", details, "rule_calls", callbackCalls));
   }
 
   private <T extends AutoCloseable> Value own(String type, T value) {

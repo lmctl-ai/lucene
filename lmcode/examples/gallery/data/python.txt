@@ -1,0 +1,1 @@
+PyLucene exposes Lucene indexing to Python.

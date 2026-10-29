@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Lexical date ranges on keyword fields
+# Inspired by: https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html
+# Expected: inclusive range finds two; exclusive range finds one
+# Run from repository root: lmscript lmcode/examples/gallery/10_lexical_ranges.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "1", true).keyword("date", "20260101", true));
+writer.add(document().keyword("id", "2", true).keyword("date", "20260615", true));
+writer.add(document().keyword("id", "3", true).keyword("date", "20270101", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let inclusive = searcher.search(parse_query("date", "[20260101 TO 20261231]", analyzer), 10);
+let exclusive = searcher.search(parse_query("date", "{20260101 TO 20261231}", analyzer), 10);
+assert_true(inclusive.total() == 2, "inclusive lower bound");
+assert_true(exclusive.total() == 1, "exclusive lower bound");
+inclusive.emit("inclusive dates");
+exclusive.emit("exclusive dates");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/10_lexical_ranges.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/10_lexical_ranges.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

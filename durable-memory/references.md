@@ -36,9 +36,10 @@
 | QueryParser + query objects | `parse_query`, `term_query`, `prefix_query`, `long_range`, `boolean_query` |
 | TopDocs / ScoreDoc / storedFields | `hits.total/len/at`, `hit.score/doc_id/document` |
 
-This first binding covers text indexing/search and two engine extension points.
-It does not expose every PyLucene class. Facets, vector KNN, highlighting, custom
-collectors and arbitrary Lucene subclass overrides remain future API additions.
+The binding covers text indexing/search and two engine extension points.
+The [gallery expansion](gallery.md) adds flat facets, vector KNN, sorting,
+pagination and term-vector inspection. Highlighting, custom collectors, taxonomy
+hierarchies and arbitrary Lucene subclass overrides remain future API additions.
 
 ## Limits and ownership
 

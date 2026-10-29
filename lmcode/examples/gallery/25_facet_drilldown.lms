@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: Apache-2.0
+# Filter by a facet and recalculate counts
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/FacetExample.py
+# Expected: two 2026 documents; refining author Ada leaves id 3
+# Run from repository root: lmscript lmcode/examples/gallery/25_facet_drilldown.lms
+# Adaptation: Adapts flat author/year drilldown; taxonomy hierarchies and DrillSideways are not exposed.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+let facets = facet_config();
+writer.add(facets.build(document().keyword("id", "1", true).text("body", "lucene", true).facet("Author", "Ada").facet("Year", "2025")));
+writer.add(facets.build(document().keyword("id", "2", true).text("body", "lucene", true).facet("Author", "Ben").facet("Year", "2026")));
+writer.add(facets.build(document().keyword("id", "3", true).text("body", "python", true).facet("Author", "Ada").facet("Year", "2026")));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = drill_down(facets, all_query(), "Year", "2026");
+let authors = searcher.facets(query, facets, "Author", 10);
+assert_true(searcher.count(query) == 2, "two 2026 documents");
+assert_true(authors.count("Ada") == 1 && authors.count("Ben") == 1, "counts after drilldown");
+authors.emit("authors in 2026");
+let refined = drill_down(facets, query, "Author", "Ada");
+let hits = searcher.search(refined, 10);
+assert_true(hits.total() == 1 && hits.at(0).document().get("id") == "3", "two-dimension drilldown");
+hits.emit("2026 by Ada");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/25_facet_drilldown.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/25_facet_drilldown.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

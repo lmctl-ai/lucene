@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# One-edit typo tolerance
+# Inspired by: https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html
+# Expected: matching ids 1, 2
+# Run from repository root: lmscript lmcode/examples/gallery/08_fuzzy_query.lms
+# Adaptation: Uses current integer edit-distance syntax, not the obsolete fractional similarity syntax in older tutorials.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+writer.add(document().keyword("id", "1", true).text("body", "lucene", true));
+writer.add(document().keyword("id", "2", true).text("body", "lucent", true));
+writer.add(document().keyword("id", "3", true).text("body", "lunar", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+let hits = searcher.search(parse_query("body", "lucene~1", analyzer), 10);
+assert_true(hits.total() == 2, "expected match count");
+let found = str_map();
+for (hit in hits) { found.set(hit.document().get("id"), "yes"); }
+assert_true(found.has("1"), "expected document 1");
+assert_true(found.has("2"), "expected document 2");
+hits.emit("One-edit typo tolerance");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/08_fuzzy_query.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/08_fuzzy_query.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Update by ID and delete by exact term
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+# Expected: one updated document, then zero live documents
+# Run from repository root: lmscript lmcode/examples/gallery/18_update_delete.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "1", true).text("body", "old content", true));
+writer.update("id", "1", document().keyword("id", "1", true).text("body", "new content", true));
+let after_update = writer.reader();
+let searcher = index_searcher(after_update);
+assert_true(after_update.num_docs() == 1, "update replaces matching ID");
+assert_true(searcher.count(term_query("body", "old")) == 0, "old content removed");
+searcher.search(term_query("body", "new"), 10).emit("after update");
+writer.delete("id", "1");
+let after_delete = writer.reader();
+assert_true(after_delete.num_docs() == 0, "delete visible to new reader");
+index_searcher(after_delete).search(all_query(), 10).emit("after delete");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/18_update_delete.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/18_update_delete.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

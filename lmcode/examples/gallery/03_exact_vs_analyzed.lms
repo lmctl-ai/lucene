@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Exact identifiers versus analyzed text
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py
+# Expected: exact SKU preserves case; analyzed text contains token abc
+# Run from repository root: lmscript lmcode/examples/gallery/03_exact_vs_analyzed.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("sku", "AbC-123", true).text("body", "AbC-123", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+assert_true(searcher.count(term_query("sku", "AbC-123")) == 1, "exact case preserved");
+assert_true(searcher.count(term_query("sku", "abc-123")) == 0, "exact terms are case sensitive");
+assert_true(searcher.count(term_query("body", "abc")) == 1, "analyzed token is lowercased");
+searcher.search(term_query("sku", "AbC-123"), 10).emit("exact SKU");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/03_exact_vs_analyzed.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/03_exact_vs_analyzed.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

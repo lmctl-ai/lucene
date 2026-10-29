@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Compare standard, whitespace and keyword analyzers
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py
+# Expected: three distinct tokenization policies
+# Run from repository root: lmscript lmcode/examples/gallery/15_analyzer_choices.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let input = "Hello WORLD";
+let standard = standard_analyzer().tokens("body", input);
+let whitespace = whitespace_analyzer().tokens("body", input);
+let keyword = keyword_analyzer().tokens("body", input);
+assert_true(standard.at(0).term() == "hello", "standard lowercases");
+assert_true(whitespace.at(0).term() == "Hello", "whitespace preserves case");
+assert_true(keyword.len() == 1 && keyword.at(0).term() == input, "keyword preserves entire value");
+standard.emit("standard");
+whitespace.emit("whitespace");
+keyword.emit("keyword");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/15_analyzer_choices.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/15_analyzer_choices.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

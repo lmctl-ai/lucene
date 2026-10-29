@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Sort results by keyword doc values
+# Inspired by: https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html
+# Expected: apple, mango, zebra
+# Run from repository root: lmscript lmcode/examples/gallery/23_keyword_sort.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "zebra", true).sort_keyword("name_sort", "zebra"));
+writer.add(document().keyword("id", "apple", true).sort_keyword("name_sort", "apple"));
+writer.add(document().keyword("id", "mango", true).sort_keyword("name_sort", "mango"));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let hits = searcher.sorted_search(all_query(), "name_sort", SortType.STRING, false, 10);
+assert_true(hits.at(0).document().get("id") == "apple", "alphabetical first");
+assert_true(hits.at(2).document().get("id") == "zebra", "alphabetical last");
+hits.emit("name order");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/23_keyword_sort.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/23_keyword_sort.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

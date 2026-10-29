@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Sort results by numeric doc values
+# Inspired by: https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html
+# Expected: low first ascending; high first descending
+# Run from repository root: lmscript lmcode/examples/gallery/22_numeric_sort.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "high", true).number("price", 100, true).sort_number("price_sort", 100));
+writer.add(document().keyword("id", "low", true).number("price", 9, true).sort_number("price_sort", 9));
+writer.add(document().keyword("id", "mid", true).number("price", 25, true).sort_number("price_sort", 25));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let ascending = searcher.sorted_search(all_query(), "price_sort", SortType.LONG, false, 10);
+let descending = searcher.sorted_search(all_query(), "price_sort", SortType.LONG, true, 10);
+assert_true(ascending.at(0).document().get("id") == "low", "numeric ascending");
+assert_true(descending.at(0).document().get("id") == "high", "numeric descending");
+ascending.emit("cheapest first");descending.emit("most expensive first");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/22_numeric_sort.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/22_numeric_sort.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

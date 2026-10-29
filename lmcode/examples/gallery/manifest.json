@@ -1,0 +1,261 @@
+{
+  "schema": "lmlucene.gallery.v1",
+  "examples": [
+    {
+      "file": "01_index_files.lms",
+      "title": "Index and search a small text-file corpus",
+      "category": "Indexing",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py",
+      "expected": "three persisted documents; two Lucene matches",
+      "adaptation": "Uses three bundled text files and idempotent path updates instead of traversing an arbitrary directory."
+    },
+    {
+      "file": "02_fielded_search.lms",
+      "title": "Search titles and contents separately",
+      "category": "Search",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/SearchFiles.py",
+      "expected": "only id 1",
+      "adaptation": ""
+    },
+    {
+      "file": "03_exact_vs_analyzed.lms",
+      "title": "Exact identifiers versus analyzed text",
+      "category": "Indexing",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py",
+      "expected": "exact SKU preserves case; analyzed text contains token abc",
+      "adaptation": ""
+    },
+    {
+      "file": "04_phrase_query.lms",
+      "title": "Exact phrase search",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1",
+      "adaptation": ""
+    },
+    {
+      "file": "05_phrase_slop.lms",
+      "title": "Phrase proximity with slop",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1, 2",
+      "adaptation": ""
+    },
+    {
+      "file": "06_boolean_filters.lms",
+      "title": "Boolean MUST, FILTER and MUST_NOT clauses",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "only id 1",
+      "adaptation": ""
+    },
+    {
+      "file": "07_wildcard_prefix.lms",
+      "title": "Single-character wildcard and direct prefix queries",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1, 2",
+      "adaptation": ""
+    },
+    {
+      "file": "08_fuzzy_query.lms",
+      "title": "One-edit typo tolerance",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1, 2",
+      "adaptation": "Uses current integer edit-distance syntax, not the obsolete fractional similarity syntax in older tutorials."
+    },
+    {
+      "file": "09_regexp_query.lms",
+      "title": "Regular-expression terms",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1, 2",
+      "adaptation": ""
+    },
+    {
+      "file": "10_lexical_ranges.lms",
+      "title": "Lexical date ranges on keyword fields",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "inclusive range finds two; exclusive range finds one",
+      "adaptation": ""
+    },
+    {
+      "file": "11_numeric_ranges.lms",
+      "title": "Numeric point ranges for prices",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "only mid; text range syntax does not query LongPoint data",
+      "adaptation": ""
+    },
+    {
+      "file": "12_boosted_query.lms",
+      "title": "Boost one term to change ranking",
+      "category": "Search",
+      "source": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "expected": "matching ids 1, 2",
+      "adaptation": ""
+    },
+    {
+      "file": "13_english_stemming.lms",
+      "title": "English stemming and stop words",
+      "category": "Analysis",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py",
+      "expected": "run matches both documents and the is removed",
+      "adaptation": "Uses built-in EnglishAnalyzer; its pipeline is not an exact copy of the historical custom Porter filter ordering."
+    },
+    {
+      "file": "14_token_offsets.lms",
+      "title": "Inspect terms, positions and offsets",
+      "category": "Analysis",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/TermPositionVector.py",
+      "expected": "hello at 0..5 and lucene at 7..13",
+      "adaptation": ""
+    },
+    {
+      "file": "15_analyzer_choices.lms",
+      "title": "Compare standard, whitespace and keyword analyzers",
+      "category": "Analysis",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py",
+      "expected": "three distinct tokenization policies",
+      "adaptation": ""
+    },
+    {
+      "file": "16_term_vectors.lms",
+      "title": "Read stored term frequencies, positions and offsets",
+      "category": "Analysis",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/TermPositionVector.py",
+      "expected": "red frequency 2 at positions 0 and 2; blue frequency 1",
+      "adaptation": ""
+    },
+    {
+      "file": "17_repeated_fields.lms",
+      "title": "Repeated fields, stored-only data and absent values",
+      "category": "Indexing",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py",
+      "expected": "one hit with tag array [java, search]",
+      "adaptation": ""
+    },
+    {
+      "file": "18_update_delete.lms",
+      "title": "Update by ID and delete by exact term",
+      "category": "Lifecycle",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java",
+      "expected": "one updated document, then zero live documents",
+      "adaptation": ""
+    },
+    {
+      "file": "19_reader_snapshots.lms",
+      "title": "Near-real-time readers are immutable snapshots",
+      "category": "Lifecycle",
+      "source": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html",
+      "expected": "old reader sees 1; new reader sees 2 without commit",
+      "adaptation": ""
+    },
+    {
+      "file": "20_commit_rollback.lms",
+      "title": "Explicit commit survives later rollback",
+      "category": "Lifecycle",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java",
+      "expected": "only committed document remains",
+      "adaptation": ""
+    },
+    {
+      "file": "21_search_after.lms",
+      "title": "Paginate scores with searchAfter",
+      "category": "Results",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/SearchFiles.py",
+      "expected": "pages of 2, 2, 1; all five IDs exactly once",
+      "adaptation": "Uses a score cursor instead of the older demo\u2019s overfetch-and-slice pagination; keep query, searcher and similarity unchanged."
+    },
+    {
+      "file": "22_numeric_sort.lms",
+      "title": "Sort results by numeric doc values",
+      "category": "Results",
+      "source": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html",
+      "expected": "low first ascending; high first descending",
+      "adaptation": ""
+    },
+    {
+      "file": "23_keyword_sort.lms",
+      "title": "Sort results by keyword doc values",
+      "category": "Results",
+      "source": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html",
+      "expected": "apple, mango, zebra",
+      "adaptation": ""
+    },
+    {
+      "file": "24_facet_counts.lms",
+      "title": "Count author facets across all or matching documents",
+      "category": "Facets",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java",
+      "expected": "global Ada=2, Ben=1; query-relative Ada=1, Ben=1",
+      "adaptation": "Uses Lucene\u2019s sorted-set doc-values facets, avoiding a separate taxonomy index."
+    },
+    {
+      "file": "25_facet_drilldown.lms",
+      "title": "Filter by a facet and recalculate counts",
+      "category": "Facets",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/FacetExample.py",
+      "expected": "two 2026 documents; refining author Ada leaves id 3",
+      "adaptation": "Adapts flat author/year drilldown; taxonomy hierarchies and DrillSideways are not exposed."
+    },
+    {
+      "file": "26_multivalued_facets.lms",
+      "title": "Count multiple tags without double-counting documents",
+      "category": "Facets",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java",
+      "expected": "java=1, search=2; two documents in the dimension",
+      "adaptation": ""
+    },
+    {
+      "file": "27_vector_knn.lms",
+      "title": "Nearest-neighbor search over explicit float vectors",
+      "category": "Vectors",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java",
+      "expected": "near then middle, using Euclidean similarity",
+      "adaptation": "Uses explicit 2D fixture vectors; no embedding model, downloads or claim of semantic text understanding."
+    },
+    {
+      "file": "28_filtered_knn.lms",
+      "title": "Apply an eligibility filter inside KNN retrieval",
+      "category": "Vectors",
+      "source": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/KnnFloatVectorQuery.html",
+      "expected": "near then far; excludes private middle",
+      "adaptation": ""
+    },
+    {
+      "file": "29_sam_normalization.lms",
+      "title": "Override analysis with a domain vocabulary rule",
+      "category": "SAM rules",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py",
+      "expected": "both spellings match; emitted tokens are car and color",
+      "adaptation": "Uses lmcode SAM entry dispatch from a Java TokenFilter instead of PyLucene\u2019s PythonAnalyzer subclass."
+    },
+    {
+      "file": "30_sam_ranking.lms",
+      "title": "Use a field-statistics SAM rule to change ranking",
+      "category": "SAM rules",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/Similarity.java",
+      "expected": "baseline favors body; SAM weighting ranks title first",
+      "adaptation": ""
+    },
+    {
+      "file": "31_bm25_explain.lms",
+      "title": "Inspect BM25 length normalization and explanations",
+      "category": "Results",
+      "source": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/BM25Similarity.java",
+      "expected": "short text wins by default; b=0 produces equal scores",
+      "adaptation": ""
+    },
+    {
+      "file": "32_manual_search.lms",
+      "title": "Search a miniature manual-page catalog",
+      "category": "Applications",
+      "source": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/mansearch.py",
+      "expected": "find(1), with stored description",
+      "adaptation": "Uses a bundled three-record catalog; does not require or crawl the machine\u2019s man-page installation."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Apply an eligibility filter inside KNN retrieval
+# Inspired by: https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/KnnFloatVectorQuery.html
+# Expected: near then far; excludes private middle
+# Run from repository root: lmscript lmcode/examples/gallery/28_filtered_knn.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "near", true).keyword("group", "public", true).vector("embedding", float_list().add(1.0).add(0.0)));
+writer.add(document().keyword("id", "middle", true).keyword("group", "private", true).vector("embedding", float_list().add(0.8).add(0.2)));
+writer.add(document().keyword("id", "far", true).keyword("group", "public", true).vector("embedding", float_list().add(0.0).add(1.0)));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = knn_query("embedding", float_list().add(1.0).add(0.0), 2, term_query("group", "public"));
+let hits = searcher.search(query, 10);
+assert_true(hits.len() == 2, "two eligible results");
+assert_true(hits.at(0).document().get("id") == "near", "nearest eligible");
+assert_true(hits.at(1).document().get("id") == "far", "private middle document excluded before retrieval");
+hits.emit("public neighbors");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/28_filtered_knn.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/28_filtered_knn.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

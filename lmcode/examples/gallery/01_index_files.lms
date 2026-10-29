@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Index and search a small text-file corpus
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py
+# Expected: three persisted documents; two Lucene matches
+# Run from repository root: lmscript lmcode/examples/gallery/01_index_files.lms
+# Adaptation: Uses three bundled text files and idempotent path updates instead of traversing an arbitrary directory.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = fs_directory("lmcode/build/gallery/file-index");
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+let names = str_list().add("lucene.txt").add("python.txt").add("garden.txt");
+for (name in names) {
+  let path = "lmcode/examples/gallery/data/" + name;
+  writer.update("path", path, document().keyword("path", path, true).text("contents", file_read(path), true));
+}
+writer.close();
+let reader = directory_reader(directory);
+let hits = index_searcher(reader).search(parse_query("contents", "lucene", analyzer), 10);
+assert_true(reader.num_docs() == 3, "rerunning updates existing paths");
+assert_true(hits.total() == 2, "two files mention Lucene");
+hits.emit("file matches");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/01_index_files.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/01_index_files.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

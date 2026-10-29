@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Search a miniature manual-page catalog
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/mansearch.py
+# Expected: find(1), with stored description
+# Run from repository root: lmscript lmcode/examples/gallery/32_manual_search.lms
+# Adaptation: Uses a bundled three-record catalog; does not require or crawl the machine’s man-page installation.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("name", "ls", true).keyword("section", "1", true).text("keywords", "list directory contents", true).stored("description", "List files in a directory"));
+writer.add(document().keyword("name", "find", true).keyword("section", "1", true).text("keywords", "search directory tree", true).stored("description", "Find files in a directory tree"));
+writer.add(document().keyword("name", "printf", true).keyword("section", "3", true).text("keywords", "format output text", true).stored("description", "Format a string"));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = boolean_query().add(parse_query("keywords", "directory AND tree", analyzer), Occur.MUST).add(term_query("section", "1"), Occur.FILTER).build();
+let hits = searcher.search(query, 10);
+assert_true(hits.total() == 1 && hits.at(0).document().get("name") == "find", "manual page lookup");
+hits.emit("manual lookup");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/32_manual_search.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/32_manual_search.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

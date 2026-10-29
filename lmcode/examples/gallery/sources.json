@@ -1,0 +1,90 @@
+{
+  "retrieved": "2026-10-29T17:37:05.079288+00:00",
+  "lucene_tested": "10.5.2",
+  "sources": [
+    {
+      "url": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java",
+      "fetched_url": "https://raw.githubusercontent.com/apache/lucene/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java",
+      "sha256": "82e651be386790eb6cc10352fca91640c93059a123d71cd55a5cee9b246114ae",
+      "bytes": 261123
+    },
+    {
+      "url": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/BM25Similarity.java",
+      "fetched_url": "https://raw.githubusercontent.com/apache/lucene/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/BM25Similarity.java",
+      "sha256": "b87ada5d6e58ee873def5cebab303fe5da244748eec52d2832f5aa173f3b8257",
+      "bytes": 11878
+    },
+    {
+      "url": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/Similarity.java",
+      "fetched_url": "https://raw.githubusercontent.com/apache/lucene/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/Similarity.java",
+      "sha256": "d9846595cd2de22dd903430630f9ef64b8392ceea48b1ba70325fb6d515301c1",
+      "bytes": 12144
+    },
+    {
+      "url": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java",
+      "fetched_url": "https://raw.githubusercontent.com/apache/lucene/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java",
+      "sha256": "d27c3a2074b04041844137b35b287902a03920a78fd1fd7ccec3cc55ed300d24",
+      "bytes": 11456
+    },
+    {
+      "url": "https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java",
+      "fetched_url": "https://raw.githubusercontent.com/apache/lucene/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/facet/SimpleSortedSetFacetsExample.java",
+      "sha256": "348a18ce46f9c90f1e7ba7dc6695fff14946a9b1369b517d4042c4238bec5951",
+      "bytes": 6590
+    },
+    {
+      "url": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html",
+      "fetched_url": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/IndexSearcher.html",
+      "sha256": "9a682c47392435a6f60f065301de3cbaecb8c13988a3a63fa72a9693fb05a161",
+      "bytes": 109794
+    },
+    {
+      "url": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/KnnFloatVectorQuery.html",
+      "fetched_url": "https://lucene.apache.org/core/10_5_0/core/org/apache/lucene/search/KnnFloatVectorQuery.html",
+      "sha256": "90203849d3751910fb58de7aa8af179d72d5894bd19c4973af838c87f58d8da8",
+      "bytes": 45869
+    },
+    {
+      "url": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "fetched_url": "https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html",
+      "sha256": "792487743a4d291a0539637b32c5cfcb7fce9d05b4946b0a089db12ed530fffa",
+      "bytes": 23108
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/FacetExample.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/FacetExample.py",
+      "sha256": "5d6cfde7c204b6293db6bb467020c1418cee19814ccb3e04a5dc459835791dc9",
+      "bytes": 12331
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py",
+      "sha256": "010c0200ddddc1306855276dbc77db679d516f636a27472d6d2235c73fe0e4c9",
+      "bytes": 3624
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/PorterStemmerAnalyzer.py",
+      "sha256": "c3b336a97e067e2eaad0e0e17996ef127e63c3ee3e1358885c2d23acca871887",
+      "bytes": 2647
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/SearchFiles.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/SearchFiles.py",
+      "sha256": "4a19d127e71e61139607ee237ef1978a40bb2c1245b7c7a12da8f91f149b2804",
+      "bytes": 1886
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/TermPositionVector.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/TermPositionVector.py",
+      "sha256": "922c749981e3638c01014ab19c6ba7d6546f49589c4d8b22de7053d811970a0c",
+      "bytes": 1764
+    },
+    {
+      "url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/mansearch.py",
+      "fetched_url": "https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/mansearch.py",
+      "sha256": "07007e1cbfad592026e7a59475454d7c52c6fab70a1abd79050b66e6b02e7c87",
+      "bytes": 2864
+    }
+  ]
+}

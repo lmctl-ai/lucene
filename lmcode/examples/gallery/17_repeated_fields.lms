@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Repeated fields, stored-only data and absent values
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/IndexFiles.py
+# Expected: one hit with tag array [java, search]
+# Run from repository root: lmscript lmcode/examples/gallery/17_repeated_fields.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "1", true).keyword("tag", "java", true).keyword("tag", "search", true).stored("note", "not indexed").stored("empty", ""));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let hits = searcher.search(term_query("tag", "search"), 10);
+let result = hits.at(0).document();
+assert_true(result.get("tag") == "java", "get returns first stored value");
+assert_true(result.has("empty") && !result.has("missing"), "empty versus absent");
+assert_true(searcher.count(term_query("note", "not indexed")) == 0, "stored field is not searchable");
+hits.emit("all stored values retain arrays");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/17_repeated_fields.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/17_repeated_fields.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

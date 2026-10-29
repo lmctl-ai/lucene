@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Nearest-neighbor search over explicit float vectors
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java
+# Expected: near then middle, using Euclidean similarity
+# Run from repository root: lmscript lmcode/examples/gallery/27_vector_knn.lms
+# Adaptation: Uses explicit 2D fixture vectors; no embedding model, downloads or claim of semantic text understanding.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "near", true).keyword("group", "public", true).vector("embedding", float_list().add(1.0).add(0.0)));
+writer.add(document().keyword("id", "middle", true).keyword("group", "private", true).vector("embedding", float_list().add(0.8).add(0.2)));
+writer.add(document().keyword("id", "far", true).keyword("group", "public", true).vector("embedding", float_list().add(0.0).add(1.0)));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = knn_query("embedding", float_list().add(1.0).add(0.0), 2);
+let hits = searcher.search(query, 10);
+assert_true(hits.len() == 2, "k limits candidate results");
+assert_true(hits.at(0).document().get("id") == "near", "exact vector ranks first");
+assert_true(hits.at(1).document().get("id") == "middle", "second nearest vector");
+assert_true(abs(hits.at(0).score() - 1.0) < 0.00001, "Euclidean identity score");
+hits.emit("two nearest neighbors");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/27_vector_knn.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/27_vector_knn.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Numeric point ranges for prices
+# Inspired by: https://lucene.apache.org/core/10_5_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html
+# Expected: only mid; text range syntax does not query LongPoint data
+# Run from repository root: lmscript lmcode/examples/gallery/11_numeric_ranges.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "budget", true).number("price", 9, true));
+writer.add(document().keyword("id", "mid", true).number("price", 25, true));
+writer.add(document().keyword("id", "premium", true).number("price", 100, true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let hits = searcher.search(long_range("price", 10, 50), 10);
+assert_true(hits.total() == 1, "numeric comparison");
+assert_true(hits.at(0).document().get("id") == "mid", "mid-price product");
+assert_true(searcher.count(parse_query("price", "[10 TO 50]", analyzer)) == 0, "text parser does not query LongPoint fields");
+hits.emit("prices 10 through 50");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/11_numeric_ranges.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/11_numeric_ranges.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

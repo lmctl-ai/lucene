@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# Inspect BM25 length normalization and explanations
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/BM25Similarity.java
+# Expected: short text wins by default; b=0 produces equal scores
+# Run from repository root: lmscript lmcode/examples/gallery/31_bm25_explain.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+writer.add(document().keyword("id", "1", true).text("body", "lucene", true));
+writer.add(document().keyword("id", "2", true).text("body", "lucene many additional unrelated words make this document longer", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = term_query("body", "lucene");
+let normalized = searcher.search(query, 10);
+assert_true(normalized.at(0).document().get("id") == "1", "shorter field wins");
+assert_true(normalized.at(0).score() > normalized.at(1).score(), "length penalty");
+report("BM25 explanation", searcher.explain(query, normalized.at(0).doc_id()));
+searcher.bm25(1.2, 0.0);
+let unnormalized = searcher.search(query, 10);
+assert_true(abs(unnormalized.at(0).score() - unnormalized.at(1).score()) < 0.00001, "b=0 removes length penalty at equal term frequency");
+normalized.emit("default BM25");unnormalized.emit("without length normalization");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/31_bm25_explain.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/31_bm25_explain.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

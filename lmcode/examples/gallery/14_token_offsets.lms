@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Inspect terms, positions and offsets
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/TermPositionVector.py
+# Expected: hello at 0..5 and lucene at 7..13
+# Run from repository root: lmscript lmcode/examples/gallery/14_token_offsets.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let tokens = standard_analyzer().tokens("body", "Hello, LUCENE!");
+assert_true(tokens.len() == 2, "two tokens");
+assert_true(tokens.at(0).term() == "hello", "lowercase");
+assert_true(tokens.at(1).term() == "lucene", "lowercase");
+assert_true(tokens.at(0).position() == 0, "first position");
+assert_true(tokens.at(1).start() == 7 && tokens.at(1).end() == 13, "source offsets");
+tokens.emit("token stream");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/14_token_offsets.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/14_token_offsets.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

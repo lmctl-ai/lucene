@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# Paginate scores with searchAfter
+# Inspired by: https://svn.apache.org/repos/asf/lucene/pylucene/trunk/samples/SearchFiles.py
+# Expected: pages of 2, 2, 1; all five IDs exactly once
+# Run from repository root: lmscript lmcode/examples/gallery/21_search_after.lms
+# Adaptation: Uses a score cursor instead of the older demo’s overfetch-and-slice pagination; keep query, searcher and similarity unchanged.
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+for (i in range(0, 5)) { writer.add(document().keyword("id", str(i), true).text("body", "lucene", true)); }
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = term_query("body", "lucene");
+let first = searcher.search(query, 2);
+let second = searcher.search_after(query, first.at(first.len() - 1), 2);
+let third = searcher.search_after(query, second.at(second.len() - 1), 2);
+let end = searcher.search_after(query, third.at(third.len() - 1), 2);
+assert_true(first.total() == 5, "exact total across pages");
+assert_true(first.len() == 2 && second.len() == 2 && third.len() == 1 && end.len() == 0, "page sizes");
+let seen = str_map();
+for (hit in first) { seen.set(hit.document().get("id"), "yes"); }
+for (hit in second) { assert_true(!seen.has(hit.document().get("id")), "no overlap"); seen.set(hit.document().get("id"), "yes"); }
+for (hit in third) { assert_true(!seen.has(hit.document().get("id")), "no overlap"); seen.set(hit.document().get("id"), "yes"); }
+assert_true(seen.len() == 5, "all documents visited");
+first.emit("page 1");second.emit("page 2");third.emit("page 3");
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/21_search_after.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/21_search_after.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

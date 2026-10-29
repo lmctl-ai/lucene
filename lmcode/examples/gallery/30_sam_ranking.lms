@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Use a field-statistics SAM rule to change ranking
+# Inspired by: https://github.com/apache/lucene/blob/releases/lucene/10.5.2/lucene/core/src/java/org/apache/lucene/search/similarities/Similarity.java
+# Expected: baseline favors body; SAM weighting ranks title first
+# Run from repository root: lmscript lmcode/examples/gallery/30_sam_ranking.lms
+mkdir("lmcode/build/gallery");
+program = _lmcode_ schema="../../lucene.dsl.json";
+@similarity
+fn prefer_title(stats: CollectionStats) -> float implements FieldWeight {
+  let factor = 1.0;
+  if (stats.field() == "title") { factor = 10.0; }
+  assert_true(stats.doc_count() > 0 && stats.doc_freq() > 0, "real collection statistics");
+  return factor;
+}
+let directory = memory_directory();
+let analyzer = standard_analyzer();
+let writer = index_writer(directory, writer_config(analyzer));
+
+writer.add(document().keyword("id", "title", true).text("title", "lucene", true).text("body", "other", true));
+writer.add(document().keyword("id", "body", true).text("title", "other", true).text("body", "lucene", true));
+let reader = writer.reader();
+let searcher = index_searcher(reader);
+
+let query = parse_query("body", "title:lucene OR body:lucene^3", analyzer);
+let baseline = searcher.search(query, 10);
+assert_true(baseline.at(0).document().get("id") == "body", "baseline boost");
+searcher.similarity_rule("prefer_title");
+let tuned = searcher.search(query, 10);
+assert_true(tuned.at(0).document().get("id") == "title", "SAM changes rank");
+let explanation = searcher.explain(query, tuned.at(0).doc_id());
+assert_true(str_find(explanation, "prefer_title") >= 0, "rule identified in explanation");
+baseline.emit("before rule");tuned.emit("after rule");
+report("explanation", explanation);
+end _lmcode_
+savedsl(program, "lmcode/build/gallery/30_sam_ranking.dslb");
+r = system lmcode/lmlucene --dsl lmcode/build/gallery/30_sam_ranking.dslb;
+if (r.code != 0) { print(r.stderr); }
+assert(r.code == 0);
+print(r.stdout);

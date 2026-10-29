@@ -1,0 +1,11 @@
+# Run from repository root after ./lmcode/build.sh:
+# lmscript --no-preflight lmcode/examples/run-gallery.lms
+manifest = json_parse(read_file("lmcode/examples/gallery/manifest.json"));
+for (example in manifest.examples) {
+  print("Running " + example.file);
+  result = run_script("lmcode/examples/gallery/" + example.file);
+  if (!result.success) { print(result.output); }
+  assert(result.success);
+  print(result.stdout);
+}
+print("All gallery examples passed");
